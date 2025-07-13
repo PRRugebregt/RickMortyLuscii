@@ -15,6 +15,10 @@ protocol CartoonNetworkCharacterProtocol {
     func fetchCharacterDetails(characterId: String) async -> RickAndMortyCharacter?
 }
 
+protocol CartoonNetworkImageProtocol {
+    func fetchHeaderImage(urlString: String) async -> Data?
+}
+
 final class CartoonNetwork: CartoonNetworkEpisodeProtocol {
     private let urlSession = URLSession.shared
     private let baseUrl = "https://rickandmortyapi.com/api/"
@@ -33,7 +37,7 @@ final class CartoonNetwork: CartoonNetworkEpisodeProtocol {
         switch episodesResult {
         case .success(let baseResponse):
             return baseResponse
-        case .failure(let error):
+        case .failure:
             return nil
         }
     }
@@ -89,7 +93,23 @@ extension CartoonNetwork: CartoonNetworkCharacterProtocol {
         switch characterDetailsResponse {
         case .success(let result):
             return result
-        case .failure(let error):
+        case .failure:
+            return nil
+        }
+    }
+}
+
+extension CartoonNetwork: CartoonNetworkImageProtocol {
+    func fetchHeaderImage(urlString: String) async -> Data? {
+        guard let url = URL(string: urlString) else {
+            return nil
+        }
+                
+        do {
+            let (imageData, _) = try await urlSession.data(from: url)
+            return imageData
+        } catch {
+            debugPrint("### Error fetching header image \(error.localizedDescription)")
             return nil
         }
     }

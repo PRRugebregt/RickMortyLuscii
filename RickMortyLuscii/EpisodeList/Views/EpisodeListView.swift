@@ -16,17 +16,19 @@ enum NavigationDestination: Hashable {
 
 // Rootview
 struct EpisodeListView: View {
+    typealias CartoonNetworkProtocol = CartoonNetworkEpisodeProtocol & CartoonNetworkCharacterProtocol & CartoonNetworkImageProtocol
+    
     @StateObject private var episodeListViewModel: EpisodeListViewModel
     @Query private var episodes: [RickAndMortyEpisodePersistence]
     @State private var navigationPath: [NavigationDestination] = []
     
-    private let cartoonNetwork: CartoonNetworkEpisodeProtocol & CartoonNetworkCharacterProtocol
+    private let cartoonNetwork: CartoonNetworkProtocol
     
     private let endOfListMessage = "End of the line. There are no more episodes"
     
     init(
         modelContext: ModelContext,
-        cartoonNetwork: CartoonNetworkEpisodeProtocol & CartoonNetworkCharacterProtocol
+        cartoonNetwork: CartoonNetworkProtocol
     ) {
         self.cartoonNetwork = cartoonNetwork
         self._episodeListViewModel = StateObject(
@@ -72,7 +74,10 @@ struct EpisodeListView: View {
                         navigationPath: $navigationPath
                     )
                 case .characterDetail(let character):
-                    Text("GOH IH! \(character.name)")
+                    CharacterDetailView(
+                        selectedCharacter: character,
+                        cartoonNetwork: cartoonNetwork
+                    )
                 default:
                     Text("Episode not found")
                 }
