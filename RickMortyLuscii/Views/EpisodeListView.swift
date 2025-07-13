@@ -52,9 +52,7 @@ struct EpisodeListView: View {
                     }
                 }
                 if episodeListViewModel.shouldShowEndMessage {
-                    VStack {
-                        Text(endOfListMessage)
-                    }
+                    Text(endOfListMessage)
                 }
             }
         }
