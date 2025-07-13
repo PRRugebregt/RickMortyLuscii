@@ -24,7 +24,8 @@ struct CharacterDetailView: View {
     
     var body: some View {
         VStack {
-            if let image = characterDetailViewModel.selectedCharacter.image {
+            // Header image
+            if let image = characterDetailViewModel.headerImage {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
@@ -38,6 +39,7 @@ struct CharacterDetailView: View {
                 }
             }
             Spacer()
+            // Character info
             VStack(alignment: .leading) {
                 HorizontalTextView(leadingText: "Name",trailingText: characterDetailViewModel.selectedCharacter.name)
                     .font(.title)
@@ -47,6 +49,11 @@ struct CharacterDetailView: View {
                 HorizontalTextView(leadingText: "Episode count",trailingText: "\(characterDetailViewModel.selectedCharacter.episodeCount)")
 
             }
+            // Button to share a document with character data
+            ShareLink(item: characterDetailViewModel.convertModelAndFetchURL() ?? URL(fileURLWithPath: "")) {
+                Label("Export", systemImage: "square.and.arrow.up")
+            }
+            .padding()
         }
     }
 }
