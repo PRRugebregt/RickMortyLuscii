@@ -57,7 +57,7 @@ final class RickAndMortyEpisodePersistence {
     }
 }
 
-struct RickAndMortyCharacter: Codable {
+struct RickAndMortyCharacter: Codable, Hashable {
     let id: Int // The id of the character.
     let name: String // The name of the character.
     let status: String // The status of the character ('Alive', 'Dead' or 'unknown').
@@ -72,12 +72,12 @@ struct RickAndMortyCharacter: Codable {
     let created: String  // Time at which the character was created in the database.
 }
 
-struct Origin: Codable {
+struct Origin: Codable, Hashable {
     let name: String
     let url: String
 }
 
-struct Location: Codable {
+struct Location: Codable, Hashable {
     let name: String
     let url: String
 }

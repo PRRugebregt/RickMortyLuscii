@@ -8,24 +8,31 @@
 import SwiftUI
 import SwiftData
 
-enum NavigationDestination {
+enum NavigationDestination: Hashable {
     case episodeList
     case characterList
-    case characterDetail
+    case characterDetail(selectedCharacter: RickAndMortyCharacter)
 }
 
+// Rootview
 struct EpisodeListView: View {
     @StateObject private var episodeListViewModel: EpisodeListViewModel
     @Query private var episodes: [RickAndMortyEpisodePersistence]
     @State private var navigationPath: [NavigationDestination] = []
     
+    private let cartoonNetwork: CartoonNetworkEpisodeProtocol & CartoonNetworkCharacterProtocol
+    
     private let endOfListMessage = "End of the line. There are no more episodes"
     
-    init(modelContext: ModelContext) {
+    init(
+        modelContext: ModelContext,
+        cartoonNetwork: CartoonNetworkEpisodeProtocol & CartoonNetworkCharacterProtocol
+    ) {
+        self.cartoonNetwork = cartoonNetwork
         self._episodeListViewModel = StateObject(
             wrappedValue: EpisodeListViewModel(
                 episodeModelContext: modelContext,
-                cartoonNetwork: CartoonNetwork()
+                cartoonNetwork: cartoonNetwork
             )
         )
     }
@@ -41,6 +48,7 @@ struct EpisodeListView: View {
                         episodeCode: "\(episode.id)"
                     )
                     .onTapGesture {
+                        episodeListViewModel.selectedEpisodeId = episode.id
                         // Navigate to character details
                         navigationPath.append(.characterList)
                     }
@@ -55,6 +63,20 @@ struct EpisodeListView: View {
                     Text(endOfListMessage)
                 }
             }
+            .navigationDestination(for: NavigationDestination.self, destination: { destination in
+                switch destination {
+                case .characterList:
+                    CharacterListView(
+                        characterIds: episodeListViewModel.mapCharacterIds(),
+                        cartoonNetwork: cartoonNetwork,
+                        navigationPath: $navigationPath
+                    )
+                case .characterDetail(let character):
+                    Text("GOH IH! \(character.name)")
+                default:
+                    Text("Episode not found")
+                }
+            })
         }
         .onAppear {
             episodeListViewModel.fetchEpisodes()
@@ -75,5 +97,5 @@ struct EpisodeListView: View {
             fatalError("Could not create ModelContainer: \(error)")
         }
     }()
-    return EpisodeListView(modelContext: sharedModelContainer.mainContext)
+    return EpisodeListView(modelContext: sharedModelContainer.mainContext, cartoonNetwork: CartoonNetwork())
 }

@@ -1,6 +1,6 @@
 //
-//  testSwiftDataApp.swift
-//  testSwiftData
+//  RickMortyLusciiApp.swift
+//  RickMortyLusciiApp
 //
 //  Created by Patrick Rugebregt on 09/07/2025.
 //
@@ -9,7 +9,7 @@ import SwiftUI
 import SwiftData
 
 @main
-struct testSwiftDataApp: App {
+struct RickMortyLusciiApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             RickAndMortyEpisodePersistence.self,
@@ -25,7 +25,10 @@ struct testSwiftDataApp: App {
 
     var body: some Scene {
         WindowGroup {
-            EpisodeListView(modelContext: sharedModelContainer.mainContext)
+            EpisodeListView(
+                modelContext: sharedModelContainer.mainContext,
+                cartoonNetwork: CartoonNetwork()
+            )
         }
     }
 }

@@ -11,14 +11,16 @@ import SwiftData
 final class EpisodeListViewModel: ObservableObject {
     @Published var episodes: [RickAndMortyEpisode] = []
     @Published var shouldShowEndMessage = false
-    private let cartoonNetwork: CartoonNetworkProtocol
+    private let cartoonNetwork: CartoonNetworkEpisodeProtocol
     private var episodeModelContext: ModelContext
     private var pageIndex: Int = 1
     private var lastPageIndex: Int = 0
+    // The episode that the user has tapped on
+    var selectedEpisodeId: Int = -1
 
     init(
         episodeModelContext: ModelContext,
-        cartoonNetwork: CartoonNetworkProtocol
+        cartoonNetwork: CartoonNetworkEpisodeProtocol
     ) {
         self.episodeModelContext = episodeModelContext
         self.cartoonNetwork = cartoonNetwork
@@ -56,5 +58,19 @@ final class EpisodeListViewModel: ObservableObject {
     
     func isLastEpisode(_ episode: RickAndMortyEpisode) -> Bool {
         episode.id == episodes.last?.id
+    }
+    
+    func mapCharacterIds() -> [String] {
+        // Take the character URL (string)
+        // Separate by "/" and fetch the last component which is the ID of the character
+        // Cast that to an Int
+        guard let episode = episodes.first(where: { $0.id == selectedEpisodeId }) else {
+            return []
+        }
+        return episode.characters.compactMap { urlString in
+            urlString
+                .components(separatedBy: "/")
+                .last
+        }
     }
 }
