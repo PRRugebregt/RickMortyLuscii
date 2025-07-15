@@ -10,11 +10,13 @@ import SwiftUI
 struct CharacterListView: View {
     @StateObject var characterListViewModel: CharacterListViewModel
     @Binding var navigationPath: [NavigationDestination]
+    private let episodeName: String
     
     init(
         characterIds: [String],
         cartoonNetwork: CartoonNetworkCharacterProtocol,
-        navigationPath: Binding<[NavigationDestination]>
+        navigationPath: Binding<[NavigationDestination]>,
+        episodeName: String
     ) {
         self._navigationPath = navigationPath
         _characterListViewModel = StateObject(
@@ -23,27 +25,36 @@ struct CharacterListView: View {
                 cartoonNetwork: cartoonNetwork
             )
         )
+        self.episodeName = episodeName
     }
     
     var body: some View {
-        List {
-            ForEach(characterListViewModel.characterIds, id: \.self) { id in
-                Text("Character ID: " + id)
-                    .onTapGesture {
-                        Task {
-                            await characterListViewModel.fetchCharacterDetails(characterId: id)
-                            guard let character = characterListViewModel.selectedCharacter else {
-                                return
+        VStack {
+            Text("Episode: \(episodeName)")
+                .font(.title)
+            Text("Characters:")
+                .font(.title3)
+            List {
+                ForEach(characterListViewModel.characterIds, id: \.self) { id in
+                    Text("Character ID: " + id)
+                        .frame(maxWidth: .infinity)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            Task {
+                                await characterListViewModel.fetchCharacterDetails(characterId: id)
+                                guard let character = characterListViewModel.selectedCharacter else {
+                                    return
+                                }
+                                // Navigate to the characterDetail with the selected character
+                                navigationPath.append(.characterDetail(selectedCharacter: character))
                             }
-                            // Navigate to the characterDetail with the selected character
-                            navigationPath.append(.characterDetail(selectedCharacter: character))
                         }
-                    }
+                }
             }
         }
     }
 }
 
 #Preview {
-    CharacterListView(characterIds: [], cartoonNetwork: CartoonNetwork(), navigationPath: .constant([]))
+    CharacterListView(characterIds: [], cartoonNetwork: CartoonNetwork(), navigationPath: .constant([]), episodeName: "Episode")
 }

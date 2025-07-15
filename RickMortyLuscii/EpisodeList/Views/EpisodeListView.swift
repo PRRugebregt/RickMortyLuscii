@@ -43,50 +43,56 @@ struct EpisodeListView: View {
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
-            List {
-                Text("Last refresh: \(episodeListViewModel.lastRefreshDate)")
-                ForEach(episodeListViewModel.episodes) { episode in
-                    EpisodeView(
-                        name: episode.name,
-                        airDate: episodeListViewModel.formatToEpisodeDate(dateString: episode.airDate),
-                        episodeCode: "\(episode.id)"
-                    )
-                    .onTapGesture {
-                        episodeListViewModel.selectedEpisodeId = episode.id
-                        // Navigate to character details
-                        navigationPath.append(.characterList)
-                    }
-                    .onAppear {
-                        if episodeListViewModel.isLastEpisode(episode) {
-                            // On appearance of the last item, fetch the next page of results
-                            episodeListViewModel.fetchNextEpisodePage()
+            VStack {
+                Text("All episodes")
+                    .font(.title)
+                List {
+                    Text("Last refresh: \(episodeListViewModel.lastRefreshDate)")
+                    ForEach(episodeListViewModel.episodes) { episode in
+                        EpisodeView(
+                            name: episode.name,
+                            airDate: episodeListViewModel.formatToEpisodeDate(dateString: episode.airDate),
+                            episodeCode: "\(episode.id)"
+                        )
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            episodeListViewModel.selectedEpisodeId = episode.id
+                            // Navigate to character details
+                            navigationPath.append(.characterList)
+                        }
+                        .onAppear {
+                            if episodeListViewModel.isLastEpisode(episode) {
+                                // On appearance of the last item, fetch the next page of results
+                                episodeListViewModel.fetchNextEpisodePage()
+                            }
                         }
                     }
+                    if episodeListViewModel.shouldShowEndMessage {
+                        Text(endOfListMessage)
+                    }
                 }
-                if episodeListViewModel.shouldShowEndMessage {
-                    Text(endOfListMessage)
+                .refreshable {
+                    episodeListViewModel.refreshList(episodesToRemove: savedEpisodes)
                 }
+                .navigationDestination(for: NavigationDestination.self, destination: { destination in
+                    switch destination {
+                    case .characterList:
+                        CharacterListView(
+                            characterIds: episodeListViewModel.mapCharacterIds(),
+                            cartoonNetwork: cartoonNetwork,
+                            navigationPath: $navigationPath,
+                            episodeName: episodeListViewModel.fetchEpisodeName()
+                        )
+                    case .characterDetail(let character):
+                        CharacterDetailView(
+                            selectedCharacter: character,
+                            cartoonNetwork: cartoonNetwork
+                        )
+                    default:
+                        Text("Episode not found")
+                    }
+                })
             }
-            .refreshable {
-                episodeListViewModel.refreshList(episodesToRemove: savedEpisodes)
-            }
-            .navigationDestination(for: NavigationDestination.self, destination: { destination in
-                switch destination {
-                case .characterList:
-                    CharacterListView(
-                        characterIds: episodeListViewModel.mapCharacterIds(),
-                        cartoonNetwork: cartoonNetwork,
-                        navigationPath: $navigationPath
-                    )
-                case .characterDetail(let character):
-                    CharacterDetailView(
-                        selectedCharacter: character,
-                        cartoonNetwork: cartoonNetwork
-                    )
-                default:
-                    Text("Episode not found")
-                }
-            })
         }
         .onAppear {
             // Check if there are any saved episodes and put them in memory

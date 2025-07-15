@@ -77,6 +77,7 @@ final class EpisodeListViewModel: ObservableObject {
                 }
                 // Show user that this was the last result
                 self.shouldShowEndMessage = self.lastPageIndex == self.pageIndex
+                // Append to the array
                 self.episodes.append(contentsOf: response.results)
                 // Save to persistent storage
                 self.swiftDataManager.saveEpisodes(episodes: response.results)
@@ -89,9 +90,10 @@ final class EpisodeListViewModel: ObservableObject {
         DispatchQueue.main.async {
             self.episodes = []
         }
-        
+        // Delete all episodes in persistent storage
         swiftDataManager.removeAllEpisodes(episodesToRemove: episodesToRemove)
         
+        // Update last refresh date
         let dateString = DateHelper.shared.formatToHour(date: Date())
         userDefaults.set(dateString, forKey: UserDefaultsKeys.lastRefresh)
         lastRefreshDate = dateString
@@ -120,6 +122,13 @@ final class EpisodeListViewModel: ObservableObject {
                 .components(separatedBy: "/")
                 .last
         }
+    }
+    
+    func fetchEpisodeName() -> String {
+        guard let episode = episodes.first(where: { $0.id == selectedEpisodeId }) else {
+            return ""
+        }
+        return episode.name
     }
     
     private func saveLastPageIndex() {
