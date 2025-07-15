@@ -29,5 +29,4 @@ final class CharacterListViewModel: ObservableObject {
             self.selectedCharacter = characterDetail
         }
     }
-    
 }

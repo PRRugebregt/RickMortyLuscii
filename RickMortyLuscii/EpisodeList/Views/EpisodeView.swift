@@ -20,10 +20,10 @@ struct EpisodeView: View {
                     .font(.title3)
                     .fontWeight(.bold)
                 HStack {
-                    Text(airDate)
+                    Text("Episode nr: " + episodeCode)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                    Text(episodeCode)
+                    Text("Airdate: " + airDate)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }

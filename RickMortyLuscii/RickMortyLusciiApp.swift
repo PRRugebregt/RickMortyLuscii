@@ -10,7 +10,7 @@ import SwiftData
 
 @main
 struct RickMortyLusciiApp: App {
-    var sharedModelContainer: ModelContainer = {
+    private let sharedModelContainer: ModelContainer = {
         let schema = Schema([
             RickAndMortyEpisodePersistence.self,
         ])
@@ -26,9 +26,10 @@ struct RickMortyLusciiApp: App {
     var body: some Scene {
         WindowGroup {
             EpisodeListView(
-                modelContext: sharedModelContainer.mainContext,
-                cartoonNetwork: CartoonNetwork()
+                cartoonNetwork: CartoonNetwork(), 
+                swiftDataManager: SwiftDataManager(sharedModelContainer: sharedModelContainer)
             )
+            .modelContext(sharedModelContainer.mainContext)
         }
     }
 }

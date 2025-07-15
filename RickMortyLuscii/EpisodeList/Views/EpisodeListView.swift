@@ -17,36 +17,38 @@ enum NavigationDestination: Hashable {
 // Rootview
 struct EpisodeListView: View {
     typealias CartoonNetworkProtocol = CartoonNetworkEpisodeProtocol & CartoonNetworkCharacterProtocol & CartoonNetworkImageProtocol
-    
-    @StateObject private var episodeListViewModel: EpisodeListViewModel
-    @Query private var episodes: [RickAndMortyEpisodePersistence]
-    @State private var navigationPath: [NavigationDestination] = []
-    
+
     private let cartoonNetwork: CartoonNetworkProtocol
+    @StateObject private var episodeListViewModel: EpisodeListViewModel
+
+    // Navigation path for SwiftUI navigation
+    @State private var navigationPath: [NavigationDestination] = []
+    // SwiftData model for persistence
+    @Query private var savedEpisodes: [RickAndMortyEpisodePersistence]
     
     private let endOfListMessage = "End of the line. There are no more episodes"
     
     init(
-        modelContext: ModelContext,
-        cartoonNetwork: CartoonNetworkProtocol
+        cartoonNetwork: CartoonNetworkProtocol,
+        swiftDataManager: SwiftDataManagerProtocol
     ) {
         self.cartoonNetwork = cartoonNetwork
         self._episodeListViewModel = StateObject(
             wrappedValue: EpisodeListViewModel(
-                episodeModelContext: modelContext,
-                cartoonNetwork: cartoonNetwork
+                cartoonNetwork: cartoonNetwork, 
+                swiftDataManager: swiftDataManager
             )
         )
     }
 
     var body: some View {
-        // Note: For larger / hybrid UIKit - SwiftUI apps I would rather use UIHostingControllers and move navigation to UIKit with routers
         NavigationStack(path: $navigationPath) {
             List {
+                Text("Last refresh: \(episodeListViewModel.lastRefreshDate)")
                 ForEach(episodeListViewModel.episodes) { episode in
                     EpisodeView(
                         name: episode.name,
-                        airDate: episode.airDate,
+                        airDate: episodeListViewModel.formatToEpisodeDate(dateString: episode.airDate),
                         episodeCode: "\(episode.id)"
                     )
                     .onTapGesture {
@@ -64,6 +66,9 @@ struct EpisodeListView: View {
                 if episodeListViewModel.shouldShowEndMessage {
                     Text(endOfListMessage)
                 }
+            }
+            .refreshable {
+                episodeListViewModel.refreshList(episodesToRemove: savedEpisodes)
             }
             .navigationDestination(for: NavigationDestination.self, destination: { destination in
                 switch destination {
@@ -84,6 +89,14 @@ struct EpisodeListView: View {
             })
         }
         .onAppear {
+            // Check if there are any saved episodes and put them in memory
+            guard savedEpisodes.isEmpty else {
+                debugPrint("### Found episodes in persistent storage. Number of episodes \(savedEpisodes.count)")
+                episodeListViewModel.loadSavedObjects(savedEpisodes: savedEpisodes)
+                return
+            }
+            
+            // Else fetch episodes from API
             episodeListViewModel.fetchEpisodes()
         }
     }
@@ -102,5 +115,5 @@ struct EpisodeListView: View {
             fatalError("Could not create ModelContainer: \(error)")
         }
     }()
-    return EpisodeListView(modelContext: sharedModelContainer.mainContext, cartoonNetwork: CartoonNetwork())
+    return EpisodeListView(cartoonNetwork: CartoonNetwork(), swiftDataManager: SwiftDataManager(sharedModelContainer: sharedModelContainer))
 }

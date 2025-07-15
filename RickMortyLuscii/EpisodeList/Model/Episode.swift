@@ -34,7 +34,7 @@ final class RickAndMortyEpisodePersistence {
     let name: String
     let airDate: String
     let episode: String
-    let characters: [RickAndMortyCharacter]
+    let characters: [String]
     let url: String
     let created: String
     
@@ -43,7 +43,7 @@ final class RickAndMortyEpisodePersistence {
         name: String,
         airDate: String,
         episode: String,
-        characters: [RickAndMortyCharacter],
+        characters: [String],
         url: String,
         created: String
     ) {

@@ -7,23 +7,40 @@
 
 import Foundation
 import SwiftData
+import SwiftUI
 
 final class EpisodeListViewModel: ObservableObject {
     @Published var episodes: [RickAndMortyEpisode] = []
     @Published var shouldShowEndMessage = false
+    @Published var lastRefreshDate: String = {
+        // Fetch the last refresh from UserDefaults
+        guard let lastRefresh = UserDefaults.standard.string(forKey: UserDefaultsKeys.lastRefresh) else {
+            return ""
+        }
+        
+        return lastRefresh
+    }()
+    private var lastPageIndex: Int = {
+        // When nothing is saved this returns 0
+        // lastPageIndex will be updated with the first API call
+        UserDefaults.standard.integer(forKey: UserDefaultsKeys.lastPageIndex)
+    }()
+
+    
     private let cartoonNetwork: CartoonNetworkEpisodeProtocol
-    private var episodeModelContext: ModelContext
+    private let swiftDataManager: SwiftDataManagerProtocol
+    private let userDefaults = UserDefaults.standard
+    
     private var pageIndex: Int = 1
-    private var lastPageIndex: Int = 0
     // The episode that the user has tapped on
     var selectedEpisodeId: Int = -1
 
     init(
-        episodeModelContext: ModelContext,
-        cartoonNetwork: CartoonNetworkEpisodeProtocol
+        cartoonNetwork: CartoonNetworkEpisodeProtocol,
+        swiftDataManager: SwiftDataManagerProtocol
     ) {
-        self.episodeModelContext = episodeModelContext
         self.cartoonNetwork = cartoonNetwork
+        self.swiftDataManager = swiftDataManager
     }
     
     func fetchNextEpisodePage() {
@@ -35,6 +52,16 @@ final class EpisodeListViewModel: ObservableObject {
         fetchEpisodes()
     }
     
+    func loadSavedObjects(savedEpisodes: [RickAndMortyEpisodePersistence]) {
+        episodes = mapToUIModel(savedEpisodes: savedEpisodes)
+            .sorted(by: { $0.id < $1.id })
+        // Update pageIndex to the number of saved pages of episodes
+        // Round the number up (40 episodes = page 2, 41 episodes = page 3)
+        pageIndex = (savedEpisodes.count + 20 - 1) / 20
+        // Update end message
+        shouldShowEndMessage = lastPageIndex == pageIndex
+    }
+    
     func fetchEpisodes() {
         Task {
             guard let response = await cartoonNetwork.fetchEpisodes(page: pageIndex) else {
@@ -42,28 +69,49 @@ final class EpisodeListViewModel: ObservableObject {
             }
             
             lastPageIndex = response.info.pages
+            saveLastPageIndex()
             
             DispatchQueue.main.async { [weak self] in
                 guard let self else {
                     return
                 }
                 // Show user that this was the last result
-                if self.lastPageIndex == self.pageIndex {
-                    self.shouldShowEndMessage = true
-                }
+                self.shouldShowEndMessage = self.lastPageIndex == self.pageIndex
                 self.episodes.append(contentsOf: response.results)
+                // Save to persistent storage
+                self.swiftDataManager.saveEpisodes(episodes: response.results)
             }
         }
     }
     
+    func refreshList(episodesToRemove: [RickAndMortyEpisodePersistence]) {
+        // Reset all data to sync with API
+        DispatchQueue.main.async {
+            self.episodes = []
+        }
+        
+        swiftDataManager.removeAllEpisodes(episodesToRemove: episodesToRemove)
+        
+        let dateString = DateHelper.shared.formatToHour(date: Date())
+        userDefaults.set(dateString, forKey: UserDefaultsKeys.lastRefresh)
+        lastRefreshDate = dateString
+        
+        pageIndex = 1
+        fetchEpisodes()
+    }
+    
+    func formatToEpisodeDate(dateString: String) -> String {
+        DateHelper.shared.formatToEpisodeDate(date: dateString)
+    }
+    
     func isLastEpisode(_ episode: RickAndMortyEpisode) -> Bool {
-        episode.id == episodes.last?.id
+        return episode.id == episodes.last?.id
     }
     
     func mapCharacterIds() -> [String] {
         // Take the character URL (string)
         // Separate by "/" and fetch the last component which is the ID of the character
-        // Cast that to an Int
+        // Cast that to a String
         guard let episode = episodes.first(where: { $0.id == selectedEpisodeId }) else {
             return []
         }
@@ -71,6 +119,24 @@ final class EpisodeListViewModel: ObservableObject {
             urlString
                 .components(separatedBy: "/")
                 .last
+        }
+    }
+    
+    private func saveLastPageIndex() {
+        userDefaults.setValue(lastPageIndex, forKey: UserDefaultsKeys.lastPageIndex)
+    }
+    
+    private func mapToUIModel(savedEpisodes: [RickAndMortyEpisodePersistence]) -> [RickAndMortyEpisode] {
+        savedEpisodes.compactMap { savedEpisode in
+                .init(
+                    id: savedEpisode.id,
+                    name: savedEpisode.name,
+                    airDate: savedEpisode.airDate,
+                    episode: savedEpisode.episode,
+                    characters: savedEpisode.characters,
+                    url: savedEpisode.url,
+                    created: savedEpisode.created
+                )
         }
     }
 }
