@@ -27,7 +27,7 @@ struct RickMortyLusciiApp: App {
         WindowGroup {
             EpisodeListView(
                 cartoonNetwork: CartoonNetwork(), 
-                swiftDataManager: SwiftDataManager(sharedModelContainer: sharedModelContainer)
+                swiftDataManager: SwiftDataManager(mainContext: sharedModelContainer.mainContext)
             )
             .modelContext(sharedModelContainer.mainContext)
         }

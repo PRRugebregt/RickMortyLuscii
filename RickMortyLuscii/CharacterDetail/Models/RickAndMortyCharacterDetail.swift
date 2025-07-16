@@ -16,18 +16,6 @@ struct RickAndMortyCharacterDetail: Encodable {
     let originName: String
     let imageURL: String
     let episodeCount: Int
-    
-    static func mapCharacter(character: RickAndMortyCharacter) -> Self {
-        RickAndMortyCharacterDetail(
-            id: character.id,
-            name: character.name,
-            status: character.status,
-            species: character.species,
-            originName: character.origin.name,
-            imageURL: character.image,
-            episodeCount: character.episode.count
-        )
-    }
 
     // Use codingKeys to omit certain properties in export
     enum CodingKeys: CodingKey {
@@ -36,5 +24,15 @@ struct RickAndMortyCharacterDetail: Encodable {
         case species
         case originName
         case episodeCount
+    }
+    
+    init(from character: RickAndMortyCharacter) {
+        self.id = character.id
+        self.name = character.name
+        self.status = character.status
+        self.species = character.species
+        self.originName = character.origin.name
+        self.imageURL = character.image
+        self.episodeCount = character.episode.count
     }
 }

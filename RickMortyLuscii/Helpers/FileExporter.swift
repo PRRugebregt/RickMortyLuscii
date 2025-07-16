@@ -11,6 +11,7 @@ final class FileExporter {
     func encodeModel<T: Encodable>(model: T, documentName: String? = nil) -> URL? {
         let encoder = JSONEncoder()
         encoder.outputFormatting = .prettyPrinted
+        
         do {
             let data = try encoder.encode(model)
             guard let jsonString = String(data: data, encoding: .utf8) else {

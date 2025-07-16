@@ -10,7 +10,7 @@ import SwiftData
 import SwiftUI
 
 final class EpisodeListViewModel: ObservableObject {
-    @Published var episodes: [RickAndMortyEpisode] = []
+    @Published var episodes: [RickAndMortyUIEpisode] = []
     @Published var shouldShowEndMessage = false
     @Published var lastRefreshDate: String = {
         // Fetch the last refresh from UserDefaults
@@ -53,13 +53,28 @@ final class EpisodeListViewModel: ObservableObject {
     }
     
     func loadSavedObjects(savedEpisodes: [RickAndMortyEpisodePersistence]) {
-        episodes = mapToUIModel(savedEpisodes: savedEpisodes)
-            .sorted(by: { $0.id < $1.id })
+        // Map to UI model
+        DispatchQueue.main.async { [weak self] in
+            self?.episodes = savedEpisodes
+                .map({ .init(from: $0) })
+                .sorted(by: { $0.id < $1.id })
+        }
         // Update pageIndex to the number of saved pages of episodes
         // Round the number up (40 episodes = page 2, 41 episodes = page 3)
         pageIndex = (savedEpisodes.count + 20 - 1) / 20
         // Update end message
         shouldShowEndMessage = lastPageIndex == pageIndex
+    }
+    
+    func checkForSavedEpisodes() {
+        let savedEpisodes = swiftDataManager.fetchAllEpisodes()
+        // If nothing is stored, fetch episodes from the API
+        guard !savedEpisodes.isEmpty else {
+            fetchEpisodes()
+            return
+        }
+        
+        loadSavedObjects(savedEpisodes: savedEpisodes)
     }
     
     func fetchEpisodes() {
@@ -77,28 +92,31 @@ final class EpisodeListViewModel: ObservableObject {
                 }
                 // Show user that this was the last result
                 self.shouldShowEndMessage = self.lastPageIndex == self.pageIndex
+                // Map to UI model
+                let episodes: [RickAndMortyUIEpisode] = response.results.map { .init(from: $0) }
                 // Append to the array
-                self.episodes.append(contentsOf: response.results)
+                self.episodes.append(contentsOf: episodes)
                 // Save to persistent storage
                 self.swiftDataManager.saveEpisodes(episodes: response.results)
             }
         }
     }
     
-    func refreshList(episodesToRemove: [RickAndMortyEpisodePersistence]) {
+    func refreshList() {
         // Reset all data to sync with API
         DispatchQueue.main.async {
             self.episodes = []
         }
+        pageIndex = 1
+
         // Delete all episodes in persistent storage
-        swiftDataManager.removeAllEpisodes(episodesToRemove: episodesToRemove)
+        swiftDataManager.removeAllEpisodes()
         
         // Update last refresh date
         let dateString = DateHelper.shared.formatToHour(date: Date())
         userDefaults.set(dateString, forKey: UserDefaultsKeys.lastRefresh)
         lastRefreshDate = dateString
         
-        pageIndex = 1
         fetchEpisodes()
     }
     
@@ -106,7 +124,7 @@ final class EpisodeListViewModel: ObservableObject {
         DateHelper.shared.formatToEpisodeDate(date: dateString)
     }
     
-    func isLastEpisode(_ episode: RickAndMortyEpisode) -> Bool {
+    func isLastEpisode(_ episode: RickAndMortyUIEpisode) -> Bool {
         return episode.id == episodes.last?.id
     }
     
@@ -133,19 +151,5 @@ final class EpisodeListViewModel: ObservableObject {
     
     private func saveLastPageIndex() {
         userDefaults.setValue(lastPageIndex, forKey: UserDefaultsKeys.lastPageIndex)
-    }
-    
-    private func mapToUIModel(savedEpisodes: [RickAndMortyEpisodePersistence]) -> [RickAndMortyEpisode] {
-        savedEpisodes.compactMap { savedEpisode in
-                .init(
-                    id: savedEpisode.id,
-                    name: savedEpisode.name,
-                    airDate: savedEpisode.airDate,
-                    episode: savedEpisode.episode,
-                    characters: savedEpisode.characters,
-                    url: savedEpisode.url,
-                    created: savedEpisode.created
-                )
-        }
     }
 }

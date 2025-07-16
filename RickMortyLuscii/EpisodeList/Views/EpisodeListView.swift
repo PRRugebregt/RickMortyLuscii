@@ -23,10 +23,10 @@ struct EpisodeListView: View {
 
     // Navigation path for SwiftUI navigation
     @State private var navigationPath: [NavigationDestination] = []
-    // SwiftData model for persistence
-    @Query private var savedEpisodes: [RickAndMortyEpisodePersistence]
     
     private let endOfListMessage = "End of the line. There are no more episodes"
+    private let titleText = "All episodes"
+    private let refreshText = "Last refresh: "
     
     init(
         cartoonNetwork: CartoonNetworkProtocol,
@@ -44,20 +44,22 @@ struct EpisodeListView: View {
     var body: some View {
         NavigationStack(path: $navigationPath) {
             VStack {
-                Text("All episodes")
+                Text(titleText)
                     .font(.title)
                 List {
-                    Text("Last refresh: \(episodeListViewModel.lastRefreshDate)")
+                    Text(refreshText + "\(episodeListViewModel.lastRefreshDate)")
                     ForEach(episodeListViewModel.episodes) { episode in
                         EpisodeView(
                             name: episode.name,
-                            airDate: episodeListViewModel.formatToEpisodeDate(dateString: episode.airDate),
+                            airDate: episodeListViewModel.formatToEpisodeDate(
+                                dateString: episode.airDate
+                            ),
                             episodeCode: "\(episode.id)"
                         )
                         .contentShape(Rectangle())
                         .onTapGesture {
                             episodeListViewModel.selectedEpisodeId = episode.id
-                            // Navigate to character details
+                            // Navigate to character list of IDs
                             navigationPath.append(.characterList)
                         }
                         .onAppear {
@@ -72,54 +74,36 @@ struct EpisodeListView: View {
                     }
                 }
                 .refreshable {
-                    episodeListViewModel.refreshList(episodesToRemove: savedEpisodes)
+                    episodeListViewModel.refreshList()
                 }
                 .navigationDestination(for: NavigationDestination.self, destination: { destination in
-                    switch destination {
-                    case .characterList:
-                        CharacterListView(
-                            characterIds: episodeListViewModel.mapCharacterIds(),
-                            cartoonNetwork: cartoonNetwork,
-                            navigationPath: $navigationPath,
-                            episodeName: episodeListViewModel.fetchEpisodeName()
-                        )
-                    case .characterDetail(let character):
-                        CharacterDetailView(
-                            selectedCharacter: character,
-                            cartoonNetwork: cartoonNetwork
-                        )
-                    default:
-                        Text("Episode not found")
-                    }
+                    determineNextView(destination: destination)
                 })
             }
         }
         .onAppear {
             // Check if there are any saved episodes and put them in memory
-            guard savedEpisodes.isEmpty else {
-                debugPrint("### Found episodes in persistent storage. Number of episodes \(savedEpisodes.count)")
-                episodeListViewModel.loadSavedObjects(savedEpisodes: savedEpisodes)
-                return
-            }
-            
-            // Else fetch episodes from API
-            episodeListViewModel.fetchEpisodes()
+            episodeListViewModel.checkForSavedEpisodes()
         }
     }
-}
-
-#Preview {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            RickAndMortyEpisodePersistence.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+    
+    @ViewBuilder
+    private func determineNextView(destination: NavigationDestination) -> some View {
+        switch destination {
+        case .characterList:
+            CharacterListView(
+                characterIds: episodeListViewModel.mapCharacterIds(),
+                cartoonNetwork: cartoonNetwork,
+                navigationPath: $navigationPath,
+                episodeName: episodeListViewModel.fetchEpisodeName()
+            )
+        case .characterDetail(let character):
+            CharacterDetailView(
+                selectedCharacter: character,
+                cartoonNetwork: cartoonNetwork
+            )
+        default:
+            Text("Episode not found")
         }
-    }()
-    return EpisodeListView(cartoonNetwork: CartoonNetwork(), swiftDataManager: SwiftDataManager(sharedModelContainer: sharedModelContainer))
+    }
 }

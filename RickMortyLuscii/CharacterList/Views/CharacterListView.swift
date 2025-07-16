@@ -11,6 +11,9 @@ struct CharacterListView: View {
     @StateObject var characterListViewModel: CharacterListViewModel
     @Binding var navigationPath: [NavigationDestination]
     private let episodeName: String
+    private let titleText = "Episode: "
+    private let subtitleText = "Characters:"
+    private let itemText = "Character ID: "
     
     init(
         characterIds: [String],
@@ -30,13 +33,13 @@ struct CharacterListView: View {
     
     var body: some View {
         VStack {
-            Text("Episode: \(episodeName)")
+            Text(titleText + "\(episodeName)")
                 .font(.title)
-            Text("Characters:")
+            Text(subtitleText)
                 .font(.title3)
             List {
                 ForEach(characterListViewModel.characterIds, id: \.self) { id in
-                    Text("Character ID: " + id)
+                    Text(itemText + id)
                         .frame(maxWidth: .infinity)
                         .contentShape(Rectangle())
                         .onTapGesture {

@@ -14,32 +14,39 @@ final class CharacterDetailViewModel: ObservableObject {
     let cartoonNetwork: CartoonNetworkImageProtocol
     private let fileExporter = FileExporter()
     
-    init(selectedCharacter: RickAndMortyCharacter, cartoonNetwork: CartoonNetworkImageProtocol) {
-        let rickAndMortyCharacterDetail = RickAndMortyCharacterDetail.mapCharacter(character: selectedCharacter)
+    init(
+        selectedCharacter: RickAndMortyCharacter,
+        cartoonNetwork: CartoonNetworkImageProtocol
+    ) {
+        // Map to UI model
+        let rickAndMortyCharacterDetail = RickAndMortyCharacterDetail.init(from: selectedCharacter)
         self.selectedCharacter = rickAndMortyCharacterDetail
         self.cartoonNetwork = cartoonNetwork
+        // Fetch the header image
         fetchHeaderImage()
     }
     
     private func fetchHeaderImage() {
         Task {
             guard let imageData = await cartoonNetwork.fetchHeaderImage(urlString: selectedCharacter.imageURL) else {
-                print("### no imagedata")
+                debugPrint("### fetchHeaderImage - no image data")
                 return
             }
             guard let image = UIImage(data: imageData) else {
-                debugPrint("### Failed to create image from fetched image data")
+                debugPrint("### fetchHeaderImage - Failed to create image from fetched image data")
                 return
             }
             
             DispatchQueue.main.async { [weak self] in
-                guard let self else { return }
-                self.headerImage = image
+                self?.headerImage = image
             }
         }
     }
     
     func convertModelAndFetchURL() -> URL? {
-        fileExporter.encodeModel(model: selectedCharacter, documentName: selectedCharacter.name)
+        fileExporter.encodeModel(
+            model: selectedCharacter,
+            documentName: selectedCharacter.name
+        )
     }
 }

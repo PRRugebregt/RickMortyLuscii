@@ -15,24 +15,26 @@ final class RickAndMortyEpisodePersistence {
     let airDate: String
     let episode: String
     let characters: [String]
-    let url: String
-    let created: String
     
     init(
         id: Int,
         name: String,
         airDate: String,
         episode: String,
-        characters: [String],
-        url: String,
-        created: String
+        characters: [String]
     ) {
         self.id = id
         self.name = name
         self.airDate = airDate
         self.episode = episode
         self.characters = characters
-        self.url = url
-        self.created = created
+    }
+    
+    init(from rickAndMortyEpisode: RickAndMortyEpisode) {
+        self.id = rickAndMortyEpisode.id
+        self.name = rickAndMortyEpisode.name
+        self.airDate = rickAndMortyEpisode.airDate
+        self.episode = rickAndMortyEpisode.episode
+        self.characters = rickAndMortyEpisode.characters
     }
 }
