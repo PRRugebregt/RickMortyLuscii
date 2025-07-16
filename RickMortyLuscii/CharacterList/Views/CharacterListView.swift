@@ -43,16 +43,16 @@ struct CharacterListView: View {
                         .frame(maxWidth: .infinity)
                         .contentShape(Rectangle())
                         .onTapGesture {
-                            Task {
-                                await characterListViewModel.fetchCharacterDetails(characterId: id)
-                                guard let character = characterListViewModel.selectedCharacter else {
-                                    return
-                                }
-                                // Navigate to the characterDetail with the selected character
-                                navigationPath.append(.characterDetail(selectedCharacter: character))
-                            }
+                            characterListViewModel.fetchCharacterDetails(characterId: id)
                         }
                 }
+            }
+            .onChange(of: characterListViewModel.selectedCharacter) { _, selectedCharacter in
+                guard let selectedCharacter else {
+                    return
+                }
+                // Navigate to the characterDetail with the selected character
+                navigationPath.append(.characterDetail(selectedCharacter: selectedCharacter))
             }
         }
     }

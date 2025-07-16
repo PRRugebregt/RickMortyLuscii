@@ -131,15 +131,17 @@ final class EpisodeListViewModel: ObservableObject {
     func mapCharacterIds() -> [String] {
         // Take the character URL (string)
         // Separate by "/" and fetch the last component which is the ID of the character
+        // Sort it numerically 
         // Cast that to a String
         guard let episode = episodes.first(where: { $0.id == selectedEpisodeId }) else {
             return []
         }
-        return episode.characters.compactMap { urlString in
-            urlString
-                .components(separatedBy: "/")
-                .last
-        }
+        
+        return episode.characters
+                .compactMap { $0.components(separatedBy: "/").last }
+                .compactMap { Int($0) }
+                .sorted()
+                .map { String($0) }
     }
     
     func fetchEpisodeName() -> String {

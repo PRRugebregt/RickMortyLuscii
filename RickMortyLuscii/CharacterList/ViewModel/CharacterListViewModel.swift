@@ -20,13 +20,14 @@ final class CharacterListViewModel: ObservableObject {
         self.cartoonNetwork = cartoonNetwork
     }
     
-    func fetchCharacterDetails(characterId: String) async {
-        guard let characterDetail = await cartoonNetwork.fetchCharacterDetails(characterId: characterId) else {
-            return
-        }
-        
-        DispatchQueue.main.async {
-            self.selectedCharacter = characterDetail
+    func fetchCharacterDetails(characterId: String) {
+        Task {
+            guard let characterDetail = await cartoonNetwork.fetchCharacterDetails(characterId: characterId) else {
+                return
+            }
+            DispatchQueue.main.async { [weak self] in
+                self?.selectedCharacter = characterDetail
+            }
         }
     }
 }
